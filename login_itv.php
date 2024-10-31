@@ -3,6 +3,9 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// Iniciar sesión
+session_start();
+
 // Conexión a la base de datos
 $servername = "localhost"; 
 $username = "root"; // Usuario predeterminado de XAMPP
@@ -22,7 +25,7 @@ $sql = "CREATE DATABASE IF NOT EXISTS $dbname";
 $conn->query($sql);
 $conn->select_db($dbname);
 
-// Crear tablas de la base de datos si no existen
+// Crear tabla de alumnos si no existe
 $tableAlumno = "CREATE TABLE IF NOT EXISTS alumno_itv (
     id_alumno_itv INT AUTO_INCREMENT PRIMARY KEY,
     nombre_itv VARCHAR(100) NOT NULL,
@@ -42,9 +45,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $telefono = isset($_POST['telefono']) ? $_POST['telefono'] : '';
 
     // Consultar si el usuario existe
-    $stmt = $conn->prepare("SELECT * FROM alumno_itv WHERE email_itv = ? AND telefono_itv = ?");
+    $stmt = $conn->prepare("SELECT id_alumno_itv FROM alumno_itv WHERE email_itv = ? AND telefono_itv = ?");
     
-    // Verificar si la preparación de la consulta fue exitosa
     if ($stmt === false) {
         die("Error en la consulta: " . $conn->error);
     }
@@ -55,12 +57,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Comprobar si hay resultados
     if ($result->num_rows > 0) {
-        $message = "Bienvenido, " . htmlspecialchars($email);
+        $row = $result->fetch_assoc();
+        $_SESSION['id_alumno_itv'] = $row['id_alumno_itv']; // Almacena el ID del alumno en sesión
+
+        // Redirigir al dashboard
+        header("Location: dashboard_itv.php");
+        exit(); // Asegúrate de usar exit después de redirigir
     } else {
         $message = "<p style='color:red;'>Email o teléfono incorrectos.</p>";
     }
 
-    // Cierre de la conexión
+    // Cierra la consulta
     $stmt->close();
 }
 
@@ -73,7 +80,7 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Iniciar Sesión</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -89,6 +96,7 @@ $conn->close();
             padding: 20px;
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 300px;
         }
         input {
             width: 100%;
@@ -119,9 +127,5 @@ $conn->close();
         <input type="text" name="telefono" placeholder="Teléfono" required>
         <button type="submit">Iniciar Sesión</button>
     </form>
-    <!-- Mostrar el mensaje -->
-    <p><?php echo $message; ?></p>
-</div>
+    <!--
 
-</body>
-</html>
